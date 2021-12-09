@@ -13,6 +13,7 @@ SOURCES += \
     board.cpp \
     body.cpp \
     circle.cpp \
+    drawmanager.cpp \
     main.cpp \
     mainwindow.cpp \
     rectangle.cpp \
@@ -24,6 +25,7 @@ HEADERS += \
     board.h \
     body.h \
     circle.h \
+    drawmanager.h \
     mainwindow.h \
     rectangle.h \
     shape.h \

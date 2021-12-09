@@ -8,18 +8,12 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
     board = new Board();
 
-    Circle *c = new Circle(Vector(50.0, 40.0), 20.0);
-    Body *b = board->addObject(c);
-
-    c = new Circle(Vector(100, -20), 50);
-    b = board->addObject(c);
-
-    Rectangle* r = new Rectangle(Vector(-10, -70), Vector(30, 20));
-    b = board->addObject(r);
+    Body *b = board->addObject(new Circle(20.0), QPointF(50.0, 40.0));
+    b = board->addObject(new Circle(50.0), QPointF(100, -20));
+    b = board->addObject(new Rectangle(40, 110), QPointF(-10, -70));
 
 
     ui->graphicsView->setScene(board);
-    //board->draw();
 }
 
 MainWindow::~MainWindow()
@@ -30,6 +24,9 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_pushButton_clicked()
 {
+    //board->process();
     board->draw();
+
 }
+
 

@@ -10,6 +10,8 @@ public:
     Vector(double, double);
     Vector(const Vector&);
     Vector& operator=(const Vector& other);
+    Vector operator+(const Vector& other);
+    Vector& operator+=(const Vector& other);
     bool isGreater(const Vector&)const;
 };
 

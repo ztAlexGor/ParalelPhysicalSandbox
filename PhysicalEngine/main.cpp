@@ -16,15 +16,6 @@ int main(int argc, char *argv[])
     MainWindow w;
     w.show();
 
-    //Board board;
-    //Circle c(Vector(50, 40), 20);
-    //Body *b = board.addObject(&c);//, 40, 55
-    //
-    //Rectangle r(Vector(10, 10), Vector(30, 20));
-    //b = board.addObject( &r);//, 40, 55
-    //
-    //board.draw();
-    //board.update(0, 0, 300, 300);
-
     return a.exec();
 }
+

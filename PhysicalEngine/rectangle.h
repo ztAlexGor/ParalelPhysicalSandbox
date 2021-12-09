@@ -11,19 +11,17 @@
 class Rectangle: public Shape{
     //int numOfVertices;
     //int* vertices;
-    Vector v1;
-    Vector v2;
+    double width;
+    double height;
 public:
-    Rectangle(Vector, Vector);
+    Rectangle(double, double);
     void setAABB() override;
-    Shape* get() override;
+    Shape* copy()const override;
     int getType() const override;
     //Vector* getNormals();
     Vector* getVertices();
-    Vector getV1() const;
-    Vector getV2() const;
-    QRectF boundingRect() const override;
-    void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget) override;
+    double getWidth()const;
+    double getHeight()const;
 };
 
 #endif // RECTANGLE_H
