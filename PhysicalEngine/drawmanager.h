@@ -21,19 +21,23 @@ public:
 
 class CirclePainter: public QGraphicsItem{
     QPointF center;
-    double radius;
+    float radius;
+    float thickness;
 public:
-    CirclePainter(QPointF center, double radius);
+    CirclePainter(QPointF center, float radius, float t);
     QRectF boundingRect() const override;
     void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget) override;
 };
 
 
 class RectPainter: public QGraphicsItem{
-    QPointF v1;
-    QPointF v2;
+    QPointF v;
+    float w;
+    float h;
+    float a;
+    float thickness;
 public:
-    RectPainter(QPointF v1, QPointF v2);
+    RectPainter(QPointF v, float w, float h, float a, float t);
     QRectF boundingRect() const override;
     void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget) override;
 };

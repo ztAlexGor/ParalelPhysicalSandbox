@@ -9,35 +9,76 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1026</width>
-    <height>645</height>
+    <width>1669</width>
+    <height>892</height>
    </rect>
   </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>Physical Engine 3000</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="QGraphicsView" name="graphicsView">
     <property name="geometry">
      <rect>
-      <x>270</x>
-      <y>60</y>
-      <width>488</width>
-      <height>389</height>
+      <x>20</x>
+      <y>10</y>
+      <width>1391</width>
+      <height>851</height>
      </rect>
     </property>
+    <property name="backgroundBrush">
+     <brush brushstyle="SolidPattern">
+      <color alpha="255">
+       <red>255</red>
+       <green>254</green>
+       <blue>220</blue>
+      </color>
+     </brush>
+    </property>
    </widget>
-   <widget class="QPushButton" name="pushButton">
+   <widget class="QPushButton" name="pushButton_start">
     <property name="geometry">
      <rect>
-      <x>120</x>
-      <y>200</y>
-      <width>211</width>
+      <x>1440</x>
+      <y>50</y>
+      <width>75</width>
       <height>24</height>
      </rect>
     </property>
     <property name="text">
-     <string>PushButton</string>
+     <string>START</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_stop">
+    <property name="geometry">
+     <rect>
+      <x>1440</x>
+      <y>130</y>
+      <width>75</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>STOP</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_pause">
+    <property name="geometry">
+     <rect>
+      <x>1440</x>
+      <y>90</y>
+      <width>75</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>PAUSE</string>
     </property>
    </widget>
   </widget>
@@ -46,7 +87,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1026</width>
+     <width>1669</width>
      <height>22</height>
     </rect>
    </property>

@@ -4,10 +4,10 @@
 
 class Vector{
 public:
-    double X;
-    double Y;
+    float X;
+    float Y;
     Vector();
-    Vector(double, double);
+    Vector(float, float);
     Vector(const Vector&);
     Vector& operator=(const Vector& other);
     Vector operator+(const Vector& other);

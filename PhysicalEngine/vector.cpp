@@ -2,7 +2,7 @@
 
 Vector::Vector(): X(0), Y(0){}
 
-Vector::Vector(double x, double y): X(x), Y(y){}
+Vector::Vector(float x, float y): X(x), Y(y){}
 
 Vector::Vector(const Vector& other){
     this->X = other.X;

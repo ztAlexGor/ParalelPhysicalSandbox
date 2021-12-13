@@ -18,13 +18,22 @@ class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
+    enum RUN_STATUS { RUNNING = 0, PAUSED, STOPPED };
+
+    int expStatus;
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+    void fillTheSceneWithCircles();
+    void fillTheSceneWithRect();
 
 private slots:
-    void on_pushButton_clicked();
+    void on_pushButton_start_clicked();
+
+    void on_pushButton_pause_clicked();
+
+    void on_pushButton_stop_clicked();
 
 private:
     Ui::MainWindow *ui;
