@@ -6,26 +6,28 @@
 #include "circle.h"
 #include "rectangle.h"
 #include "drawmanager.h"
-#include "collision.h"
-#include <vector>
+#include "engineobject.h"
 #include <QGraphicsScene>
-#include <QTimer>
-#include <QDebug>
-//#include "useful.h"
+
 
 class Board: public QGraphicsScene{
     Q_OBJECT
-    std::vector<Body*> objects;
-    std::vector<Collision*> collisions;
+
     DrawManager* painter;
-    float invFPS;
-    int iterNum = 5;
+
+//    std::vector<Body*> objects;
+//    std::vector<Collision*> collisions;
+//    float invFPS;
+//    int iterNum = 5;
 public:
-    Board(float FPS);
-    Body* addObject(Shape*, QPointF);
-    void draw();
-public slots:
-    void process();
+    Board();
+    void clearScene();
+    void draw(QVector<EngineObject*> obj);
+
+    //Board(float FPS);
+    //Body* addObject(Shape*, QPointF);
+    //void draw();
+    //void process();
 };
 
 #endif // BOARD_H

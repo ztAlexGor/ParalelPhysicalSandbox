@@ -6,10 +6,12 @@
 #include <QPointF>
 #include <vector>
 #include <QVector2D>
+//#include "engineobject.h"
 //#include "useful.h"
 #include <QtCore/qmath.h>
 
 class Body{
+    //int id;
     Shape* shape;
     QPointF pos;
     bool is_static;
@@ -33,6 +35,7 @@ public:
     Body(Shape* shape);
     Body(Shape* shape, QPointF pos);
     Body(Shape* shape, QPointF pos, float mass);
+    Body* copy();
     Shape* getShape();
     QPointF getPos();
     float getResilience();
@@ -57,6 +60,8 @@ public:
     QPointF fromVecToPoint(QVector2D v);
     static QPointF transform(QPointF a, QPointF o, float r);
     static QVector2D transform(QVector2D v, float r);
+//    void setID(int id);
+//    int getID();
 };
 
 #endif // BODY_H

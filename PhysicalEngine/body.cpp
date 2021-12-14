@@ -9,7 +9,7 @@ Body::Body(Shape *shape, QPointF pos): shape(shape), pos(pos){
     this->shape = shape->copy();
     this->pos = pos;
     setMass(1);
-
+    //  id = 0;
     //forces();
     resForce = QVector2D();
     velocity = QVector2D();
@@ -29,6 +29,7 @@ Body::Body(Shape *shape, QPointF pos, float mass){
     this->shape = shape->copy();
     this->pos = pos;
     setMass(mass);
+    //id = 0;
 
     //forces();
     resForce = QVector2D();
@@ -44,6 +45,12 @@ Body::Body(Shape *shape, QPointF pos, float mass){
 
     int gravityScale = 5.0f;
     gravity = QVector2D(0, 10.0f * gravityScale);
+}
+
+Body *Body::copy(){
+    Body* nb = new Body(shape, pos, mass);
+    nb->setAngle(angle);
+    return nb;
 }
 
 Shape* Body::getShape(){
@@ -149,6 +156,14 @@ void Body::setStatic(){
 bool Body::isStatic(){
     return is_static;
 }
+
+//void Body::setID(int id){
+//    this->id = id;
+//}
+
+//int Body::getID(){
+//    return id;
+//}
 
 float Body::crossProduct(const QVector2D a, const QVector2D b){
     return a.x() * b.y() - a.y() * b.x();

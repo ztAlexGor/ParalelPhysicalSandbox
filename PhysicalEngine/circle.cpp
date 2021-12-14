@@ -22,6 +22,11 @@ float Circle::getRadius()const{
     return radius;
 }
 
+void Circle::setRadius(float r){
+    radius = r;
+    // todo !!! aabb
+}
+
 float Circle::getInertiaKoef() const{
     return radius * radius;
 }

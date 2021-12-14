@@ -16,6 +16,7 @@ public:
     int getType()const override;
     //Vector getCenter()const;
     float getRadius()const;
+    void setRadius(float r);
     float getInertiaKoef()const override;
     void getProjection(QVector2D axis, QPointF startPoint, float &minProj, float &maxProj);
 };

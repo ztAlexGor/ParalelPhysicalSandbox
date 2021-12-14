@@ -537,6 +537,9 @@ void Collision::collisionManage(){
         }
     }else if (t1 == Shape::RECT){
         if (t2 == Shape::CIRCLE){
+            Body* t = a;
+            a = b;
+            b = t;
             CircleWithPolygon();
         }else if (t2 == Shape::RECT){
             PolygonWithPolygon();

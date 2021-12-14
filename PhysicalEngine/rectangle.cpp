@@ -26,6 +26,16 @@ float Rectangle::getHeight()const{
     return height;
 }
 
+void Rectangle::setWidht(float w){
+    width = w;
+    //todo !!! AABB
+}
+
+void Rectangle::setHeight(float h){
+    height = h;
+    //todo !!!
+}
+
 float Rectangle::getInertiaKoef() const{
     return width * height / 2;
 }

@@ -15,6 +15,8 @@ SOURCES += \
     circle.cpp \
     collision.cpp \
     drawmanager.cpp \
+    engine.cpp \
+    engineobject.cpp \
     main.cpp \
     mainwindow.cpp \
     rectangle.cpp \
@@ -28,6 +30,8 @@ HEADERS += \
     circle.h \
     collision.h \
     drawmanager.h \
+    engine.h \
+    engineobject.h \
     mainwindow.h \
     mymat.h \
     rectangle.h \

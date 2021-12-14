@@ -23,6 +23,8 @@ public:
     QVector<QPointF> getVertices();
     float getWidth()const;
     float getHeight()const;
+    void setWidht(float w);
+    void setHeight(float h);
     float getInertiaKoef()const override;
     void getProjection(QVector2D axis, QPointF startPoint, float &minProj, float &maxProj);
     QPointF GetSupport(const QVector2D &dir);
