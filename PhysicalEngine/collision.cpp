@@ -1,8 +1,9 @@
 #include "collision.h"
 
-Collision::Collision(Body* a, Body* b){
+Collision::Collision(Body* a, Body* b, bool friction){
     this->a = a;
     this->b = b;
+    this->friction = friction;
     depth = 0;
     crossNum = 0;
     minResilience = 0;
@@ -26,9 +27,9 @@ void Collision::calculateTotalResilience(float time){
 
     minResilience = a->getResilience() < b->getResilience() ? a->getResilience() : b->getResilience();
 
-    // Calculate static and dynamic friction
-    sf = sqrt(a->getSFriction() * a->getSFriction()); //todo
-    df = sqrt(a->getDFriction() * a->getDFriction());
+    //обчислюємо коєф. тертя спокою та ковзання
+    sf = sqrt(a->getSFriction() * b->getSFriction());
+    df = sqrt(a->getDFriction() * b->getDFriction());
 
     for(int i = 0; i < crossNum; i++){
         QVector2D ra = fromPointToVec(crossPoints[i] - a->getPos());
@@ -37,33 +38,35 @@ void Collision::calculateTotalResilience(float time){
         QVector2D rv = (b->getVelocity() + crossProduct(b->getAngularVel(), rb) -
                         a->getVelocity() - crossProduct(a->getAngularVel(), ra));
 
-        // Determine if we should perform a resting collision or not
-        // The idea is if the only thing moving this object is gravity,
-        // then the collision should be performed without any restitution
+        //якщо на тіла не діє жодна сила окрім гравітації,
+        //то не потрібно використовувати коєфіцієнт відшкодування
         if(rv.lengthSquared() < (time * a->gravity).lengthSquared( ) + 0.0001)
-            minResilience = 0.0; // todo
+            minResilience = 0.0;
     }
 }
 
 void Collision::fixCollision(){
-
+    //якщо обидва тіла статичні, то взаємодія не відбувається
     if(a->isStatic() && b->isStatic()){
-//        InfiniteMassCorrection( );
+        a->setVelocity(QVector2D(0, 0));
+        b->setVelocity(QVector2D(0, 0));
         return;
     }
 
+    //для кожної точки перетину
     for(int i = 0; i < crossNum; i++){
         QVector2D ra = fromPointToVec(crossPoints[i] - a->getPos());
         QVector2D rb = fromPointToVec(crossPoints[i] - b->getPos());
 
+        //шукаємо швидкість B відносно А
         QVector2D rv = (b->getVelocity() + crossProduct(b->getAngularVel(), rb) -
                         a->getVelocity() - crossProduct(a->getAngularVel(), ra));
 
 
-        // Relative velocity along the normal
+        //швидкість B відносно А вздовж нормалі зіткнення
         float contactVel = QVector2D::dotProduct(rv, normal);
 
-        // Do not resolve if velocities are separating
+        //якщо тіла рухаються у різних напрямках, то не потрібно нічого змінювати
         if(contactVel > 0)
             return;
 
@@ -72,75 +75,82 @@ void Collision::fixCollision(){
         float invMassSum = a->getInvMass() + b->getInvMass() + raCrossN * raCrossN * a->getInvInertia()
                                                               + rbCrossN * rbCrossN * b->getInvInertia();
 
-        // Calculate impulse scalar
+        //обчислюємо величину імпульсу
         float j = -(1.0f + minResilience) * contactVel;
         j /= invMassSum;
         j /= (float)crossNum;
 
-        // Apply impulse
+        //застосовуємо імпульс до тіла A та B
         QVector2D impulse = normal * j;
         a->applyImpulse(-impulse, ra);
         b->applyImpulse(impulse, rb);
 
-        // Friction impulse
-        rv = b->getVelocity() + crossProduct(b->getAngularVel(), rb) -
-             a->getVelocity() - crossProduct(a->getAngularVel(), ra);
+        //враховуємо силу тертя
+        if (friction){
+            rv = b->getVelocity() + crossProduct(b->getAngularVel(), rb) -
+                 a->getVelocity() - crossProduct(a->getAngularVel(), ra);
 
-        QVector2D t = rv - (normal * QVector2D::dotProduct(rv, normal));
-        t.normalize();
+            //напрямок тангенціального імпульсу
+            QVector2D t = rv - (normal * QVector2D::dotProduct(rv, normal));
+            t.normalize();
 
-        // j tangent magnitude
-        float jt = - QVector2D::dotProduct(rv, t);
-        jt /= invMassSum;
-        jt /= (float)crossNum;
+            //величина тангенціального імпульсу
+            float jt = - QVector2D::dotProduct(rv, t);
+            jt /= invMassSum;
+            jt /= (float)crossNum;
 
-        // Don't apply tiny friction impulses
-        if(jt < 0.0001)return;
+            //якщо величина імпульсу дуже мала, то просто ігноруємо її
+            if(abs(jt) < 0.000001)return;
 
-        // Coulumb's law
-        QVector2D tangentImpulse;
-        if(abs(jt) < j * sf)
-          tangentImpulse = t * jt;
-        else
-          tangentImpulse = t * (-j) * df;
+            //в залежності від типу тертя імпульс буде різним
+            QVector2D tangentImpulse;
+            if(abs(jt) < j * sf)
+              tangentImpulse = t * jt;
+            else
+              tangentImpulse = t * (-j) * df;
 
-        // Apply friction impulse
-        a->applyImpulse(-tangentImpulse, ra);
-        b->applyImpulse(tangentImpulse, rb);
-  }
+            //застосовуємо імпульс тертя
+            a->applyImpulse(-tangentImpulse, ra);
+            b->applyImpulse(tangentImpulse, rb);
+        }
+    }
 }
 
 void Collision::positionalCorrection(){
-  const float k_slop = 0.05f; // Penetration allowance
-  const float percent = 0.4f; // Penetration percentage to correct
+    const float k_slop = 0.08f; //допуст проникнення (0.01; 0.1)
+    const float percent = 0.5f; //відсоток проникнення, для корекції (0.2; 0.8)
 
-  QVector2D correction = QVector2D(0, 0);
+    QVector2D correction = QVector2D(0, 0);
 
-  float t = depth - k_slop;
-  if (t > 0){
-      correction = (t / (a->getInvMass() + b->getInvMass())) * normal * percent;
-  }
-
-  a->setPos(fromVecToPoint(QVector2D(a->getPos()) - correction * a->getInvMass()));
-  b->setPos(fromVecToPoint(QVector2D(b->getPos()) + correction * b->getInvMass()));
+    float t = depth - k_slop;
+    if (t > 0){
+        correction = (t / (a->getInvMass() + b->getInvMass())) * normal * percent;
+        a->setPos(fromVecToPoint(QVector2D(a->getPos()) - correction * a->getInvMass()));
+        b->setPos(fromVecToPoint(QVector2D(b->getPos()) + correction * b->getInvMass()));
+    }
 }
 
 void Collision::CircleWithCircle(){
+    //отримуємо два круга
     Circle *c1  = reinterpret_cast<Circle *>(a->getShape());
     Circle *c2  = reinterpret_cast<Circle *>(b->getShape());
 
+    //нормаль зіткнення
     normal = QVector2D(b->getPos() - a->getPos());
+
+    //квадрат дистанції між центрами та сума радіусів
     float dist = normal.lengthSquared();
     float sumOfRadiuses = c1->getRadius() + c2->getRadius();
 
-    if (dist >= sumOfRadiuses * sumOfRadiuses){
+    //для оптимізації не використовуємо sqrt(), а порівнюємо квадрати відстаней
+    if (dist >= sumOfRadiuses * sumOfRadiuses){//перетину немає
         crossNum = 0;
-    }else if (dist == 0){
+    }else if (dist == 0){//випадок коли центри кіл співпадають
         crossNum = 1;
         normal = QVector2D(1, 0);
         depth = c1->getRadius();
         crossPoints[0] = a->getPos();
-    }else{
+    }else{//перетинаються
         dist = normal.length();
         crossNum = 1;
         normal /= dist;
@@ -152,7 +162,7 @@ void Collision::CircleWithCircle(){
 void Collision::CircleWithPolygon1(){
     Circle *c  = reinterpret_cast<Circle *>(a->getShape());
     Rectangle *r  = reinterpret_cast<Rectangle *>(b->getShape());
-    float penetration = 999999999;
+    float penetration = 99999999.f;
 
     QVector<QVector2D> axcisList_old = r->getNormals();
     QVector<QVector2D> axcisList;
@@ -205,24 +215,28 @@ void Collision::CircleWithPolygon1(){
 }
 
 void Collision::CircleWithPolygon(){
+    //отримуємо круг та прямокутник
     Circle *c = reinterpret_cast<Circle *>(a->getShape());
     Rectangle *r = reinterpret_cast<Rectangle *>(b->getShape());
 
+    //отримуємо список нормалей та вершин прямокутника
     QVector<QVector2D> axcisList = r->getNormals();
     QVector<QPointF> vertecies = r->getVertices();
     crossNum = 0;
 
-    // Transform circle center to Polygon model space
+    //трансформуємо координати центру кола в систему координат прямокутника
     QPointF center = a->getPos();
     center = fromVecToPoint(Mat2(r->getU().Transpose()) * QVector2D((center - b->getPos())));
 
-    // Find edge with minimum penetration
-    // Exact concept as using support points in Polygon vs Polygon
-    float separation = -FLT_MAX;
+    //знаходимо "лицьове" ребро
+    //принцип схожий на використання опорних точок
+    float separation = -9999999;
     int faceNormal = 0;
     for(int i = 0; i < axcisList.size(); i++){
         float s = QVector2D::dotProduct(axcisList[i], QVector2D(center - vertecies[i]));
 
+        //якщо радіус меньший ніж відстань від центру до ребра,
+        //то об'єкти не перетинаються
         if(s > c->getRadius())
             return;
 
@@ -232,98 +246,98 @@ void Collision::CircleWithPolygon(){
         }
     }
 
-    // Grab face's vertices
+    //знаходимо дві вершини інцидентні "лицьовому" ребру
     QPointF v1 = vertecies[faceNormal];
     int i2 = faceNormal + 1 < vertecies.size() ? faceNormal + 1 : 0;
     QPointF v2 = vertecies[i2];
 
-    // Check to see if center is within polygon
-    if(separation < 0.0001)
-    {
-      crossNum = 1;
-      normal = -(r->getU() * axcisList[faceNormal]);
-      crossPoints[0] = fromVecToPoint(normal * c->getRadius() + QVector2D(a->getPos()));
-      depth = c->getRadius();
-      return;
+    //перевіряємо чи знаходиться центр всередині прямокутника
+    //якщо separation від'ємне або близьке до нуля, то центр всередині або на ребрі
+    if(separation < 0.0001){
+        crossNum = 1;
+        normal = -(r->getU() * axcisList[faceNormal]);
+        crossPoints[0] = fromVecToPoint(normal * c->getRadius() + QVector2D(a->getPos()));
+        depth = c->getRadius();
+        return;
     }
 
-    // Determine which voronoi region of the edge center of circle lies within
+    //визначаємо у якій області знаходиться центр кола
     float dot1 = QVector2D::dotProduct(QVector2D(center - v1), QVector2D(v2 - v1));
     float dot2 = QVector2D::dotProduct(QVector2D(center - v2), QVector2D(v1 - v2));
     depth = c->getRadius() - separation;
 
-    // Closest to v1
-    if(dot1 <= 0.0f)
-    {
-      if(QVector2D(center - v1).lengthSquared() > c->getRadius() * c->getRadius())
-        return;
+    //центр кола ближче до вершини V1
+    if(dot1 <= 0.0f){
+        if(QVector2D(center - v1).lengthSquared() > c->getRadius() * c->getRadius())
+            return;
 
-      crossNum = 1;
-      QVector2D n(v1 - center);
-      n = r->getU() * n;
-      n.normalize();
-      normal = n;
-      v1 = fromVecToPoint(Mat2(r->getU()) * QVector2D(v1) + QVector2D(b->getPos()));
-      crossPoints[0] = v1;
-    }
-
-    // Closest to v2
-    else if(dot2 <= 0.0f)
-    {
-      if(QVector2D(center - v2).lengthSquared() > c->getRadius() * c->getRadius())
-        return;
-
-      crossNum = 1;
-      QVector2D n(v2 - center);
-      v2 = fromVecToPoint(Mat2(r->getU()) * QVector2D(v2) + QVector2D(b->getPos()));
-      crossPoints[0] = v2;
-      n = r->getU() * n;
-      n.normalize();
-      normal = n;
-    }
-
-    // Closest to face
-    else
-    {
-      QVector2D n = axcisList[faceNormal];
-      if(QVector2D::dotProduct(QVector2D(center - v1), n) > c->getRadius())
-        return;
-
-      n = r->getU() * n;
-      normal = -n;
-        crossPoints[0] = fromVecToPoint(normal * c->getRadius() + QVector2D(a->getPos()));
         crossNum = 1;
+        QVector2D n(v1 - center);
+        n = r->getU() * n;
+        n.normalize();
+        normal = n;
+        v1 = fromVecToPoint(Mat2(r->getU()) * QVector2D(v1) + QVector2D(b->getPos()));
+        crossPoints[0] = v1;
+    }
+
+    //центр кола ближче до вершини V2
+    else if(dot2 <= 0.0f){
+        if(QVector2D(center - v2).lengthSquared() > c->getRadius() * c->getRadius())
+            return;
+
+        crossNum = 1;
+        QVector2D n(v2 - center);
+        v2 = fromVecToPoint(Mat2(r->getU()) * QVector2D(v2) + QVector2D(b->getPos()));
+        crossPoints[0] = v2;
+        n = r->getU() * n;
+        n.normalize();
+        normal = n;
+    }
+
+    //центр кола знаходиться між V1 та V2
+    else{
+        QVector2D n = axcisList[faceNormal];
+        if(QVector2D::dotProduct(QVector2D(center - v1), n) > c->getRadius())
+            return;
+
+        n = r->getU() * n;
+        normal = -n;
+            crossPoints[0] = fromVecToPoint(normal * c->getRadius() + QVector2D(a->getPos()));
+            crossNum = 1;
     }
 }
 
 void Collision::PolygonWithPolygon(){
+    //отримуємо два многокутника
     Rectangle *r1  = reinterpret_cast<Rectangle *>(a->getShape());
     Rectangle *r2  = reinterpret_cast<Rectangle *>(b->getShape());
 
     crossNum = 0;
 
-    // Check for a separating axis with A's face planes
+    //перевіряємо наявність розділової осі на основі нормалей r1
+    //шукаємо "лицьове" ребро та глибину проникнення для r1
     int faceA;
     float penetrationA = FindAxisLeastPenetration( &faceA, r1, r2, a, b);
     if(penetrationA >= 0.0f)
       return;
 
-    // Check for a separating axis with B's face planes
+    //перевіряємо наявність розділової осі на основі нормалей r2
+    //шукаємо "лицьове" ребро та глибину проникнення для r2
     int faceB;
     float penetrationB = FindAxisLeastPenetration( &faceB, r2, r1, b, a);
     if(penetrationB >= 0.0f)
       return;
 
     int referenceIndex;
-    bool flip; // Always point from a to b
+    bool flip; //змінна вказує чи напрямок від r1 до r2
 
-    Rectangle *RefPoly; // Reference
-    Rectangle *IncPoly; // Incident
+    Rectangle *RefPoly; //референтний многокутник
+    Rectangle *IncPoly; //інцидентний многокутник
     Body *RefPolyBody;
     Body *IncPolyBody;
-    // Determine which shape contains reference face
-    if(BiasGreaterThan( penetrationA, penetrationB ))
-    {
+
+    //визначаємо референтний та інцидентний многокутник
+    if(BiasGreaterThan( penetrationA, penetrationB )){
       RefPoly = r1;
       IncPoly = r2;
       RefPolyBody = a;
@@ -331,9 +345,7 @@ void Collision::PolygonWithPolygon(){
       referenceIndex = faceA;
       flip = false;
     }
-
-    else
-    {
+    else{
       RefPoly = r2;
       IncPoly = r1;
       RefPolyBody = b;
@@ -342,62 +354,46 @@ void Collision::PolygonWithPolygon(){
       flip = true;
     }
 
-    // World space incident face
+    //шукаємо вершини інцидентного ребра у глобальних координатах
     QVector2D incidentFace[2];
     FindIncidentFace( incidentFace, RefPoly, IncPoly, RefPolyBody, IncPolyBody, RefPoly->getNormals()[referenceIndex]);
 
-    //        y
-    //        ^  ->n       ^
-    //      +---c ------posPlane--
-    //  x < | i |\
-    //      +---+ c-----negPlane--
-    //             \       v
-    //              r
-    //
-    //  r : reference face
-    //  i : incident poly
-    //  c : clipped point
-    //  n : incident normal
-
-    // Setup reference face vertices
-
-
+    //отримуємо дві вершини референтного многокутника
     QPointF v1 = RefPoly->getVertices()[referenceIndex];
     referenceIndex = referenceIndex + 1 == RefPoly->getVertices().size() ? 0 : referenceIndex + 1;
     QPointF v2 = RefPoly->getVertices()[referenceIndex];
 
-    // Transform vertices to world space
+    //трансформуємо їх до глобальної СК
     v1 = fromVecToPoint(RefPoly->getU() * QVector2D(v1) + QVector2D(RefPolyBody->getPos()));
     v2 = fromVecToPoint(RefPoly->getU() * QVector2D(v2) + QVector2D(RefPolyBody->getPos()));
 
-    // Calculate reference face side normal in world space
+    //направляючий вектор референтного ребра у глобальній СК
     QVector2D sidePlaneNormal = QVector2D(v2 - v1);
     sidePlaneNormal.normalize();
 
-    // Orthogonalize
+    //отримуємо референтну зовнішню нормаль шляхом повороту на 90 градусів
     QVector2D refFaceNormal(sidePlaneNormal.y(), -sidePlaneNormal.x());
 
     // ax + by = c
-    // c is distance from origin
+    // c - відстань до початку глобальної СК
     float refC = QVector2D::dotProduct(refFaceNormal, QVector2D(v1));
     float negSide = -QVector2D::dotProduct(sidePlaneNormal, QVector2D(v1));
     float posSide =  QVector2D::dotProduct(sidePlaneNormal, QVector2D(v2));
 
-    // Clip incident face to reference face side planes
+    //обрізаємо інцидентне ребро продовженнями референтних ребер
     if(Clip( -sidePlaneNormal, negSide, incidentFace ) < 2)
-      return; // Due to floating point error, possible to not have required points
+      return; //через похибку збереження даних у double точок можн не бути
 
     if(Clip(  sidePlaneNormal, posSide, incidentFace ) < 2)
-      return; // Due to floating point error, possible to not have required points
+      return; //через похибку збереження даних у double точок можн не бути
 
-    // Flip
+    //якщо потрібно, перевертаємо нормаль
     normal = flip ? -refFaceNormal : refFaceNormal;
 
-    // Keep points behind reference face
-    int cp = 0; // clipped points behind reference face
+    //збережемо точки, що знаходяться всередині многокутника
+    int cp = 0; //лічільник точок
     float separation = QVector2D::dotProduct(refFaceNormal, incidentFace[0]) - refC;
-    if(separation <= 0.0f)
-    {
+    if(separation <= 0.0f){
       crossPoints[cp] = fromVecToPoint(incidentFace[0]);
       depth = -separation;
       ++cp;
@@ -406,14 +402,13 @@ void Collision::PolygonWithPolygon(){
       depth = 0;
 
     separation = QVector2D::dotProduct(refFaceNormal, incidentFace[1]) - refC;
-    if(separation <= 0.0f)
-    {
+    if(separation <= 0.0f){
       crossPoints[cp] = fromVecToPoint(incidentFace[1]);
 
-      depth += -separation;
-      ++cp;
+      depth -= separation;
+      cp++;
 
-      // Average penetration
+      //розраховуємо середнє проникнення
       depth /= (float)cp;
     }
 
@@ -421,34 +416,38 @@ void Collision::PolygonWithPolygon(){
 }
 
 float Collision::FindAxisLeastPenetration(int *faceIndex, Rectangle *A, Rectangle *B, Body* Ab, Body* Bb){
-    float bestDistance = -FLT_MAX;
+    float bestDistance = -99999999.f;
     int bestIndex;
+
+    //отримуємо список нормалей та вершин многокутника
     QVector<QVector2D>norm = A->getNormals();
     QVector<QPointF>vert = A->getVertices();
 
+    //для кожного ребра знаходимо відстань "заглиблення"
     for(int i = 0; i < vert.size(); i++){
-        // Retrieve a face normal from A
+        //отримуємо зовнішню нормаль
         QVector2D n = norm[i];
+        //трансформуємо її у глобальну систему координат
         QVector2D nw = A->getU() * n;
 
-        // Transform face normal into B's model space
+        //трансформуємо її у систему координат другого многокутника
         Mat2 buT = B->getU().Transpose( );
         n = buT * nw;
 
-        // Retrieve support point from B along -n
+        //шукаємо опорну точку у напрямку протилежному до зовнішньої нормалі
         QVector2D s(B->GetSupport(-n));
 
-        // Retrieve vertex on face from A, transform into
-        // B's model space
+        //отримуємо вершину що належить ребру "і" та
+        //трансформуємо її у систему координат многокутника B
         QVector2D v(vert[i]);
         v = A->getU() * v + QVector2D(Ab->getPos());
         v -= QVector2D(Bb->getPos());
         v = buT * v;
 
-        // Compute penetration distance (in B's model space)
+        //обчислюємо "знакову" відстань між вершинами у напрямку нормалі
         float d = QVector2D::dotProduct(n, s - v);
 
-        // Store greatest distance
+        //зберігаємо найбільший результат
         if(d > bestDistance)
         {
           bestDistance = d;
@@ -461,68 +460,63 @@ float Collision::FindAxisLeastPenetration(int *faceIndex, Rectangle *A, Rectangl
 }
 
 void Collision::FindIncidentFace(QVector2D *v, Rectangle *RefPoly, Rectangle *IncPoly, Body* Ab, Body* Bb, QVector2D referenceNormal){
+    //отримуємо нормалі та вершини інцидентного многокутника
     QVector<QVector2D>norm = IncPoly->getNormals();
     QVector<QPointF>vert = IncPoly->getVertices();
 
-  // Calculate normal in incident's frame of reference
-  referenceNormal = RefPoly->getU() * referenceNormal; // To world space
-  referenceNormal = IncPoly->getU().Transpose( ) * referenceNormal; // To incident's model space
+    //трансформуємо нормаль reference до системи координат incident
+    referenceNormal = RefPoly->getU() * referenceNormal; //до глобальної СК
+    referenceNormal = IncPoly->getU().Transpose( ) * referenceNormal; //до СК incident
 
-  // Find most anti-normal face on incident polygon
-  int incidentFace = 0;
-  float minDot = FLT_MAX;
-  for(int i = 0; i < vert.size(); ++i){
-    float dot = QVector2D::dotProduct(referenceNormal, norm[i]);
-    if(dot < minDot){
-      minDot = dot;
-      incidentFace = i;
+    //шукаємо найвіддаленіше у протилежному до нормалі напрямку ребро многокутника incident
+    int incidentFace = 0;
+    float minDot = 999999999.f;
+    for(int i = 0; i < vert.size(); ++i){
+      float dot = QVector2D::dotProduct(referenceNormal, norm[i]);
+      if(dot < minDot){
+        minDot = dot;
+        incidentFace = i;
+      }
     }
-  }
 
-  // Assign face vertices for incidentFace
-  v[0] = IncPoly->getU() * QVector2D(vert[incidentFace]) + QVector2D(Bb->getPos());
-  incidentFace = incidentFace + 1 >= (int)vert.size() ? 0 : incidentFace + 1;
-  v[1] = IncPoly->getU() * QVector2D(vert[incidentFace]) + QVector2D(Bb->getPos());
+    //зберігаємо дві вершини знайденого ребра в глобальній СК
+    v[0] = IncPoly->getU() * QVector2D(vert[incidentFace]) + QVector2D(Bb->getPos());
+    incidentFace = incidentFace + 1 >= (int)vert.size() ? 0 : incidentFace + 1;
+    v[1] = IncPoly->getU() * QVector2D(vert[incidentFace]) + QVector2D(Bb->getPos());
 }
 
 int Collision::Clip(QVector2D n, float c, QVector2D *face){
-  int sp = 0;
-  QVector2D out[2] = {
-    face[0],
-    face[1]
-  };
+    int sp = 0;
+    QVector2D out[2] = {
+        face[0],
+        face[1]
+    };
 
-  // Retrieve distances from each endpoint to the line
-  // d = ax + by - c
-  float d1 = QVector2D::dotProduct(n, face[0]) - c;
-  float d2 = QVector2D::dotProduct(n, face[1]) - c;
+    //отримуємо відстані від кожної кінцевої точки до лінії
+    // d = ax + by - c
+    float d1 = QVector2D::dotProduct(n, face[0]) - c;
+    float d2 = QVector2D::dotProduct(n, face[1]) - c;
 
-  // If negative (behind plane) clip
-  if(d1 <= 0.0f) out[sp++] = face[0];
-  if(d2 <= 0.0f) out[sp++] = face[1];
+    //якщо від'ємна відстань, то точка не в межах многокутника. Обрізаємо
+    if(d1 <= 0.0f) out[sp++] = face[0];
+    if(d2 <= 0.0f) out[sp++] = face[1];
 
-  // If the points are on different sides of the plane
-  if(d1 * d2 < 0.0f) // less than to ignore -0.0f
-  {
-    // Push interesection point
-    float alpha = d1 / (d1 - d2);
-    out[sp] = face[0] + alpha * (face[1] - face[0]);
-    ++sp;
-  }
+    //якщо точки по різні стороні від ребра
+    if(d1 * d2 < 0.0f){
+        //додаємо точку перетину із ребром
+        float alpha = d1 / (d1 - d2);
+        out[sp] = face[0] + alpha * (face[1] - face[0]);
+        sp++;
+    }
 
-  // Assign our new converted values
-  face[0] = out[0];
-  face[1] = out[1];
+    //зберігаємо знайдені значення
+    face[0] = out[0];
+    face[1] = out[1];
 
-  assert( sp != 3 );
+    assert( sp != 3 );
 
-  return sp;
+    return sp;
 }
-
-
-
-
-
 
 
 void Collision::collisionManage(){
@@ -548,8 +542,6 @@ void Collision::collisionManage(){
     //Dispatch[A->shape->GetType( )][B->shape->GetType( )]( this, A, B );
 }
 
-
-
 QPointF Collision::fromVecToPoint(QVector2D v){
     return QPointF(v.x(), v.y());
 }
@@ -557,7 +549,6 @@ QPointF Collision::fromVecToPoint(QVector2D v){
 QVector2D Collision::fromPointToVec(QPointF p){
     return QVector2D(p.x(), p.y());
 }
-
 
 float Collision::crossProduct(const QVector2D a, const QVector2D b){
     return a.x() * b.y() - a.y() * b.x();
@@ -570,10 +561,4 @@ QVector2D Collision::crossProduct(const QVector2D a, float s){
 QVector2D Collision::crossProduct(float s, const QVector2D a){
     return QVector2D(-s * a.y(), s * a.x());
 }
-
-
-
-
-
-
 

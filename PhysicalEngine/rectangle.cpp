@@ -94,16 +94,19 @@ void Rectangle::getProjection(QVector2D axis, QPointF startPoint, float& minProj
     }
 }
 
-
 QPointF Rectangle::GetSupport(const QVector2D& dir){
-    double bestProjection = -FLT_MAX;
+    double bestProjection = -99999999;
     QPointF bestVertex;
+
+    //отримуємо список вершин многокутника
     QVector<QPointF> dots = getVertices();
 
+    //для кожної вершини обислюємо її відстань у заданому напрямку
     for(int i = 0; i < dots.size(); i++){
         QPointF v = dots[i];
         double projection = QVector2D::dotProduct(QVector2D(v), dir);
 
+        //запам'ятовуємо найвіддаленішу вершину
         if(projection > bestProjection){
             bestVertex = v;
             bestProjection = projection;

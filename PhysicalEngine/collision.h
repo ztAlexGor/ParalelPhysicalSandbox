@@ -22,13 +22,16 @@ class Collision{
     float minResilience;
     float df;
     float sf;
+    bool friction;
 private:
     void CircleWithCircle();
     void CircleWithPolygon();
     void CircleWithPolygon1();
     void PolygonWithPolygon();
+    //void AABBWithAABB();
 public:
-    Collision(Body* a, Body* b);
+    Collision(Body* a, Body* b, bool friction);
+    //~Collision(); Does not need
     void collisionManage();
     int getCrossNum();
     void calculateTotalResilience(float time);

@@ -8,9 +8,13 @@ void Board::draw(QVector<EngineObject *> obj){
     for (int i = 0; i< obj.size(); i++){
         addItem(painter->getPainter(obj[i]));
     }
+
+
 }
 
+void Board::drawTime(std::chrono::duration<float> time){
 
+}
 
 
 

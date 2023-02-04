@@ -25,7 +25,7 @@ class Body{
     float resilience;
     float angle;
     float angularVel;
-
+    float torque;
     float staticFriction;
     float dynamicFriction;
     float restitution;
@@ -42,10 +42,12 @@ public:
     QVector2D getVelocity();
     float getAngularVel();
     float getAngle();
+    float getMass();
     float getInvMass();
     float getInvInertia();
     float getSFriction();
     float getDFriction();
+    void setVelocity(QVector2D newVel);
     void setMass(float m);
     void setPos(QPointF pos);
     void addForce(QVector2D newForce);

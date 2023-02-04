@@ -37,14 +37,14 @@ QGraphicsItem* DrawManager::getPainter(EngineObject* obj){
 QGraphicsItem* DrawManager::circlePainterBuilder(Body* b){
     Circle *c  = reinterpret_cast<Circle *>(b->getShape());
 
-    return new CirclePainter(b->getPos(), c->getRadius(), new QPen(Qt::black, 4));
+    return new CirclePainter(b->getPos(), c->getRadius(), new QPen(Qt::black, 4), new QColor(Qt::white));
 }
 
 QGraphicsItem* DrawManager::rectPainterBuilder(Body* b){
     Rectangle *r  = reinterpret_cast<Rectangle *>(b->getShape());
     QPointF p = b->getPos();
 
-    return new RectPainter(p, r->getWidth(), r->getHeight(), b->getAngle(), new QPen(Qt::black, 4));
+    return new RectPainter(p, r->getWidth(), r->getHeight(), b->getAngle(), new QPen(Qt::black, 4), new QColor(Qt::white));
 }
 
 QGraphicsItem* DrawManager::circlePainterBuilder(EngineObject* obj){
@@ -54,7 +54,7 @@ QGraphicsItem* DrawManager::circlePainterBuilder(EngineObject* obj){
         pen->setColor(Qt::blue);
         obj->setSelect(false);
     }
-    return new CirclePainter(obj->getBody()->getPos(), c->getRadius(), pen);
+    return new CirclePainter(obj->getBody()->getPos(), c->getRadius(), pen, obj->getColor());
 }
 
 QGraphicsItem* DrawManager::rectPainterBuilder(EngineObject* obj){
@@ -65,13 +65,13 @@ QGraphicsItem* DrawManager::rectPainterBuilder(EngineObject* obj){
         pen->setColor(Qt::blue);
         obj->setSelect(false);
     }
-    return new RectPainter(p, r->getWidth(), r->getHeight(), obj->getBody()->getAngle(), pen);
+    return new RectPainter(p, r->getWidth(), r->getHeight(), obj->getBody()->getAngle(), pen, obj->getColor());
 }
 
 
 //-----------------------------------------------------------------------------------------------------------//
 
-CirclePainter::CirclePainter(QPointF center, float radius, QPen* pen): center(center), radius(radius), pen(pen){
+CirclePainter::CirclePainter(QPointF center, float radius, QPen* pen, QColor* color): center(center), radius(radius), pen(pen), color(color){
     this->thickness = pen->width();
 }
 
@@ -79,6 +79,10 @@ CirclePainter::CirclePainter(QPointF center, float radius, QPen* pen): center(ce
 
 void CirclePainter::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget){
     painter->setPen(*pen);
+
+    if (color->isValid()){
+        painter->setBrush(QBrush(*color, Qt::SolidPattern));
+    }
 
     float d = radius - thickness/2;
     painter->drawEllipse(center.x() - d, center.y() - d, 2*d, 2*d);
@@ -90,13 +94,13 @@ QRectF CirclePainter::boundingRect() const{
     float d = radius + thickness/2;
     //return QRectF(QPoint(center.x() - d, center.y() - d),
     //              QPoint(center.x() + d, center.y() + d));
-    return QRectF(QPointF(0, 0), QPointF(1650, 1000));
+    return QRectF(QPointF(0, 0), QPointF(1620, 1100));
 }
 
 
 //-----------------------------------------------------------------------------------------------------------//
 
-RectPainter::RectPainter(QPointF v, float w, float h, float a, QPen* pen): v(v), w(w), h(h), a(a), pen(pen){
+RectPainter::RectPainter(QPointF v, float w, float h, float a, QPen* pen, QColor* color): v(v), w(w), h(h), a(a), pen(pen), color(color){
     this->thickness = pen->width();
 }
 
@@ -104,7 +108,9 @@ RectPainter::RectPainter(QPointF v, float w, float h, float a, QPen* pen): v(v),
 
 void RectPainter::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget){
     painter->setPen(*pen);
-
+    if (color->isValid()){
+        painter->setBrush(QBrush(*color, Qt::SolidPattern));
+    }
     painter->translate(v.x(), v.y());
     painter->rotate(a * 180 / 3.1415);//
     //painter->drawRect(thickness / 2, thickness / 2,
@@ -118,7 +124,7 @@ void RectPainter::paint(QPainter* painter, const QStyleOptionGraphicsItem* optio
 }
 
 QRectF RectPainter::boundingRect() const{
-    return QRectF(QPointF(0, 0), QPointF(1650, 1000));
-    //return QRectF(QPoint(v.x() - thickness / 2, v.y() - thickness / 2),
-    //              QPoint(v.x() + w + thickness / 2, v.y() + h + thickness / 2));
+    return QRectF(QPointF(0, 0), QPointF(1620, 1100));
+    //return QRectF(QPoint(v.x() - w / 2 - thickness / 2, v.y() - h / 2 - thickness / 2),
+    //              QPoint(v.x() + w / 2 + thickness / 2, v.y() + h / 2 + thickness / 2));
 }

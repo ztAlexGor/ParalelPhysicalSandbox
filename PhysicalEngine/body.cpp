@@ -14,9 +14,10 @@ Body::Body(Shape *shape, QPointF pos): shape(shape), pos(pos){
     resForce = QVector2D();
     velocity = QVector2D();
 
-    resilience = 0.2;
-    angle = 0;
-    angularVel = 0;
+    resilience = 0.2f;
+    angle = 0.0f;
+    angularVel = 0.0f;
+    torque = 0.0f;
 
     staticFriction = 0.5f;
     dynamicFriction = 0.3f;
@@ -35,10 +36,10 @@ Body::Body(Shape *shape, QPointF pos, float mass){
     resForce = QVector2D();
     velocity = QVector2D();
 
-    resilience = 0.2;
-    angle = 0;
-    angularVel = 0;
-
+    resilience = 0.2f;
+    angle = 0.0f;
+    angularVel = 0.0f;
+    torque = 0.0f;
     staticFriction = 0.5f;
     dynamicFriction = 0.3f;
     restitution = 0.2f;
@@ -90,7 +91,9 @@ void Body::applyImpulse(QVector2D impulse, QVector2D contactVector){
 
 void Body::calculateVelocity(float time){
     if (isStatic())return;
-    velocity += (resForce * invMass + gravity)*(time / 2.0);
+    velocity += (resForce * invMass + gravity)*(time / 2.0f);
+    angularVel += torque * invInertia * (time / 2.0f);
+    //if (torque != 0)throw 1;
 }
 
 void Body::calculatePos(float time){
@@ -130,6 +133,10 @@ float Body::getAngle(){
     return angle;
 }
 
+float Body::getMass(){
+    return mass;
+}
+
 float Body::getInvMass(){
     return invMass;
 }
@@ -146,8 +153,13 @@ float Body::getDFriction(){
     return dynamicFriction;
 }
 
+void Body::setVelocity(QVector2D newVel){
+    velocity = newVel;
+}
+
 void Body::setStatic(){
     is_static = true;
+    mass = 0;
     invMass = 0;
     inertia = 0;
     invInertia = 0;

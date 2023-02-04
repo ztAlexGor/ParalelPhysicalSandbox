@@ -12,7 +12,12 @@ EngineObject::EngineObject(Body* b, QString name){
     enable = true;
     selected = false;
     pen = new QPen(Qt::black, 4);
+    color = new QColor(Qt::white);
+}
 
+EngineObject::~EngineObject(){
+    delete pen;
+    delete color;
 }
 
 Body *EngineObject::getBody(){
@@ -39,10 +44,20 @@ void EngineObject::setPen(QPen* newPen){
     pen = newPen;
 }
 
+void EngineObject::setColor(QColor *newColor){
+    if (!newColor->isValid())throw 1;
+    color = new QColor(*newColor);
+}
+
+QColor *EngineObject::getColor(){
+    return color;
+}
+
 EngineObject* EngineObject::copy(){
     EngineObject* nEng = new EngineObject(body->copy(), name);
     nEng->setEnable(enable);
     nEng->setPen(pen);
+    nEng->setColor(color);
     return nEng;
 }
 

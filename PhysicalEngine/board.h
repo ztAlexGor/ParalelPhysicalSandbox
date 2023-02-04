@@ -14,7 +14,6 @@ class Board: public QGraphicsScene{
     Q_OBJECT
 
     DrawManager* painter;
-
 //    std::vector<Body*> objects;
 //    std::vector<Collision*> collisions;
 //    float invFPS;
@@ -23,6 +22,7 @@ public:
     Board();
     void clearScene();
     void draw(QVector<EngineObject*> obj);
+    void drawTime(std::chrono::duration<float> time);
 
     //Board(float FPS);
     //Body* addObject(Shape*, QPointF);

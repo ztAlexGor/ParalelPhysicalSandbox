@@ -14,11 +14,15 @@ class EngineObject{
     bool enable;
     bool selected;
     QPen* pen;
+    QColor* color;
 public:
     EngineObject(Body* b, QString name);
+    ~EngineObject();
     bool isEnable();
     void setEnable(bool u);
     void setPen(QPen* newPen);
+    void setColor(QColor* newColor);
+    QColor *getColor();
     Body* getBody();
     QPen* getPen();
     //int getID();
